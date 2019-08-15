@@ -1,0 +1,849 @@
+const express = require('express');
+const router = express.Router()
+const { upload, cloudinary } = require('./cloudConfig');
+const Message = require('../Models/Message')
+const User = require('../Models/User')
+const Notification = require('../Models/Notification');
+const Request = require('../Models/Request');
+const Group = require('../Models/Group')
+const Feed = require("../Models/NewsFeed");
+const { timeSince } = require("./utils")
+
+
+
+router.get("/news-feeds", ensureAuthenticated, (req, res) => {
+  User.findOne({ username: req.user.username }).exec().then(user => {
+    user.feeds_count = 0
+    user.save();
+    Feed.find({}).then(allPosts => {
+      allPosts = allPosts.reverse();
+      for (let i = 0; i < allPosts.length; i++) {
+        allPosts[i].post_body = allPosts[i].post_body.slice(0, 120) + "...";
+      }
+      res.render("all-feeds", { allPosts, timeSince })
+    })
+  })
+})
+
+router.get('/single-post', ensureAuthenticated, (req, res) => {
+  const post_id = req.query.post_id;
+  Feed.findById(post_id).then(post => {
+    res.render('single-feed', { post, timeSince })
+  }).catch(() => {
+    res.redirect("/");
+    console.log("Error getting post...")
+  })
+})
+
+router.post("/new-comment/:post_id", ensureAuthenticated, (req, res) => {
+  Feed.findById(req.params.post_id).then(post => {
+    post.comments.push({
+      commenter: req.user,
+      comment_body: req.body.comment_body
+    })
+    post.save();
+    console.log(post.posted_by);
+    Notification.create({
+      userId: post.posted_by._id,
+      message: `${req.user.name} commented on your post.`,
+      link: `single-post?post_id=${post.id}`,
+      date: new Date().toISOString(),
+      time: new Date().getTime()
+    }).then(resp => {
+      User.findById(post.posted_by._id).then(user => {
+        user.notifications += 1;
+        user.save();
+      })
+    })
+
+    req.flash('success', 'comment posted')
+    res.redirect(`/single-post?post_id=${req.params.post_id}`);
+  })
+})
+
+router.get("/post-new-feed", ensureAuthenticated, (req, res) => {
+  res.render('new-post')
+})
+
+router.post("/post-new-feed", ensureAuthenticated, (req, res) => {
+  const { post_title, post_body } = req.body;
+  Feed.create({
+    post_title, post_body,
+    posted_by: req.user,
+    date: new Date().toISOString(),
+    time: new Date().getTime(),
+    comments: []
+  }).then(resp => {
+    User.find({}).exec().then(users => {
+      users.forEach(user => {
+        user.feeds_count += 1
+        user.save();
+      })
+      req.flash('success', "new post created successsfully!");
+      res.location("/news-feeds");
+      res.redirect("/news-feeds");
+    })
+  })
+
+
+})
+
+router.get("/edit-post", ensureAuthenticated, (req, res) => {
+  const { post_id } = req.query;
+  Feed.findById(post_id).then(post => {
+    if (post.posted_by.username === req.user.username) {
+      res.render("edit-post", { post })
+    }
+    else {
+      res.redirect("/");
+    }
+  })
+})
+
+
+router.post("/update-feed", ensureAuthenticated, (req, res) => {
+  const { post_id } = req.query;
+  const { new_title, new_body } = req.body;
+  Feed.updateOne({ _id: post_id }, { $set: { post_title: new_title, post_body: new_body } })
+    .then(() => {
+      console.log("Updated !!")
+      req.flash("success", "post updated!")
+      res.redirect("/news-feeds")
+    });
+})
+
+
+
+router.post('/api/saveimageurl', ensureAuthenticated, (req, res) => {
+  if (req.body.type === 'private') {
+    Message.create({
+      sillyId: `${req.user.username} ${req.body.receiver}`,
+      message: {
+        msg: req.body.url,
+        type: "image"
+      },
+      sender: req.user.username,
+      receiver: req.body.receiver,
+      date: new Date().toLocaleString(),
+      datesecs: Date.now(),
+      msgtype: "private"
+    }).then(message => {
+      User.findOne({ username: message.receiver })
+        .then(resp => {
+          resp.messages += 1;
+          resp.save();
+        })
+      res.status(200).json({
+        message: 'image sent'
+      })
+    }).catch(err => {
+      console.log(err)
+      res.json({ error: err.message })
+    })
+  }
+  else if (req.body.type === 'group') {
+    const groupid = req.body.receiver;
+    Group.findById(groupid).populate('users').then(group => {
+      Message.create({
+        sillyId: `${req.user.username} ${groupid}`,
+        message: {
+          msg: req.body.url,
+          type: "image"
+        },
+        sender: req.user.username,
+        receiver: groupid,
+        date: new Date().toLocaleString(),
+        datesecs: Date.now(),
+        msgtype: "group",
+        groupname: group.name,
+        groupid: group._id
+      }).then(message => {
+        Group.findById(groupid)
+          .then(group => {
+            group.messages.push(message)
+            group.users.forEach(member => {
+              User.findOne({ username: member.username })
+                .then(respUser => {
+                  respUser.messages += 1;
+                  respUser.save();
+                })
+            });
+            group.save();
+            res.status(200).json({
+              message: 'image sent'
+            })
+          })
+      })
+    })
+  }
+
+})
+
+router.post('/mpsome/:received', upload.single('mpsome'), (req, res) => {
+  const mpsome = {
+    msg: req.file.url,
+    type: req.body.mpsome
+  }
+  const newMessage = {
+    sillyId: `${req.user.username} ${req.params.received}`,
+    message: mpsome,
+    sender: req.user.username,
+    receiver: req.params.received,
+    date: new Date().toLocaleString()
+  }
+  Message.create(newMessage)
+    .then(success => {
+      const doNothing = true;
+    }).catch(err => {
+      console.log(err.message)
+    })
+  res.redirect(`/chatphase?type=private&user=${req.params.received}#last`);
+})
+
+router.get('/', ensureAuthenticated, (req, res) => {
+  function swapNames(string) {
+    const splitArr = string.split(" ");
+    const final = `${splitArr[1]} ${splitArr[0]}`
+    return final
+  }
+  User.findOne({ username: req.user.username })
+    .then(loggedInUser => {
+      loggedInUser.messages = 0;
+      loggedInUser.save();
+      Message.find({})
+        .sort({ datesecs: -1 })
+        .then(messages => {
+          let userMessages = [];
+          let privateusers = [];
+          let groupmsgs = [];
+          messages.forEach((message) => {
+            if (message.msgtype === "private") {
+              if (message.sender === req.user.username || message.receiver === req.user.username) {
+                if (!privateusers.includes(message.sillyId) && !privateusers.includes(swapNames(message.sillyId))) {
+                  userMessages.push(message);
+                  privateusers.push(message.sillyId);
+                }
+              }
+            }
+            else if (message.msgtype === "group") {
+              if (loggedInUser.groups.indexOf(`${message.receiver}`) !== -1) {
+                if (!groupmsgs.includes(message.receiver)) {
+                  userMessages.push(message);
+                  groupmsgs.push(message.receiver);
+                }
+              }
+            }
+          })
+          res.render('recents', {
+            messages: userMessages
+          })
+        })
+    })
+})
+
+router.get('/loadinguser', ensureAuthenticated, (req, res) => {
+  res.render('loading')
+})
+
+router.get('/addfriend/', ensureAuthenticated, (req, res) => {
+  User.find({})
+    .then(users => {
+      const suggestions = [];
+      User.findOne({ username: req.user.username })
+        .then(loggedInUser => {
+          const friendNames = [];
+          loggedInUser.friends.forEach(index => {
+            friendNames.push(index.username);
+          })
+          users.forEach(user => {
+            if (!friendNames.includes(user.username) && user.username !== req.user.username) {
+              suggestions.push(user);
+            }
+          })
+          res.render('index', {
+            users: suggestions
+          });
+        })
+    })
+})
+
+router.post('/search', ensureAuthenticated, (req, res) => {
+  const friend = req.body.friendname;
+  User.find({ $text: { $search: friend } })
+    .then(users => {
+      const searchResults = [];
+      User.findOne({ username: req.user.username })
+        .then(loggedInUser => {
+          const friendNames = [];
+          loggedInUser.friends.forEach(index => {
+            friendNames.push(index.username);
+          })
+          users.forEach(user => {
+            if (user.username != req.user.username) {
+              searchResults.push(user);
+            }
+          })
+          res.render('search', {
+            user: req.user,
+            searchResults: searchResults
+          });
+        })
+    })
+})
+
+router.get('/addfriend/:user', ensureAuthenticated, (req, res) => {
+  User.findOne({ username: req.params.user })
+    .then(friend => {
+      if (friend === null) {
+        res.location('/addfriend');
+        res.redirect('/addfriend');
+      }
+      else {
+        const newFriend = {
+          name: friend.name,
+          username: friend.username
+        }
+        User.findOne({ username: req.user.username })
+          .then(user => {
+            user.friends.forEach(userFriend => {
+              if (userFriend.username === newFriend.username) {
+                req.flash('success', 'you are already friends')
+                res.location('/addfriend');
+                res.redirect('/addfriend');
+              }
+            })
+            Request.find({})
+              .then(requests => {
+                var requestExists = false;
+                requests.forEach(request => {
+                  if (request.sender === req.user.username && request.receiver === friend.username) {
+                    requestExists = true;
+                    req.flash('success', 'request already sent!')
+                    res.location('/addfriend');
+                    res.redirect('/addfriend');
+                  }
+                });
+                if (!requestExists) {
+                  Request.create({
+                    sender: req.user.username,
+                    receiver: friend.username,
+                    link: 'request/accept',
+                    date: new Date().toISOString(),
+                    time: new Date().getTime()
+                  }).then(resp => {
+                    friend.requests += 1;
+                    friend.save();
+                    req.flash('success', `friend request sent!`)
+                    res.location('/addfriend');
+                    res.redirect('/addfriend');
+                  })
+                }
+              })
+          })
+      }
+    })
+})
+
+router.get('/request/accept/:user', ensureAuthenticated, (req, res) => {
+  User.findOne({ username: req.params.user })
+    .then(friend => {
+      if (friend === null) {
+        console.log(friend)
+        res.location('/requests');
+        res.redirect('/requests');
+      }
+      else {
+        const newFriend = {
+          name: friend.name,
+          username: friend.username
+        }
+        User.findOne({ username: req.user.username })
+          .then(user => {
+            let userExists = false;
+            user.friends.forEach(userFriend => {
+              if (userFriend.username === newFriend.username) {
+                userExists = true;
+                res.location('/requests');
+                res.redirect('/requests');
+              }
+            })
+            console.log(userExists)
+            if (!userExists) {
+              user.friends.push(newFriend)
+              user.save();
+              User.findOne({ username: newFriend.username })
+                .then(userFriend => {
+                  const added = {
+                    name: req.user.name,
+                    username: req.user.username
+                  }
+                  userFriend.friends.push(added);
+                  userFriend.save();
+                  Request.deleteOne({ sender: newFriend.username, receiver: req.user.username })
+                    .then(() => {
+                      User.findById(req.user._id)
+                        .then(reqUser => {
+                          reqUser.requests -= 1;
+                          reqUser.save();
+                        })
+                      Notification.create({
+                        userId: friend._id,
+                        message: `${req.user.name} (@${req.user.username}) accepted your friend request.`,
+                        link: `users/${req.user.username}`,
+                        date: new Date().toISOString(),
+                        time: new Date().getTime()
+                      }).then(resp => {
+                        friend.notifications += 1;
+                        friend.save();
+                        req.flash('success', `${newFriend.name} successfully added to your friend list`)
+                        res.location('/requests');
+                        res.redirect('/requests');
+                      })
+                    })
+                })
+            }
+          })
+      }
+    })
+
+})
+
+
+
+router.get('/request/reject/:user', ensureAuthenticated, (req, res) => {
+  Request.find({ sender: req.params.user, receiver: req.user.username })
+    .then(request => {
+      if (!request.length) {
+        res.location('/requests');
+        res.redirect('/requests');
+      }
+      else {
+        Request.deleteOne({ _id: request[0]._id })
+          .then(resp => {
+            User.findById(req.user._id)
+              .then(user => {
+                user.requests -= 1;
+                user.save();
+                res.location('/requests');
+                res.redirect('/requests');
+              })
+          })
+      }
+    })
+})
+
+router.get('/requests', ensureAuthenticated, (req, res) => {
+  Request.find({ receiver: req.user.username })
+    .then(requests => {
+      res.render('index', { requests: requests });
+    })
+})
+
+router.get('/groups', ensureAuthenticated, (req, res) => {
+  if (req.query.admin) {
+    Group.find({ createdBy: req.user.username })
+      .then(resp => {
+        res.render('groups', {
+          groups: resp,
+          heading: 'Groups you created'
+        })
+      })
+  }
+
+  else if (req.query.action && req.query.groupid) {
+    if (req.query.action === 'members') {
+      Group.findOne({ _id: req.query.groupid }).populate('users').exec()
+        .then(group => {
+          res.render('groups', {
+            members: group.users,
+            heading: `${group.name} - members`,
+            admin: group.createdBy
+          })
+        })
+    }
+    else if (req.query.action === 'manage') {
+      Group.findOne({ _id: req.query.groupid }).populate('users').exec()
+        .then(group => {
+          if (group.createdBy === req.user.username) {
+            res.render('groups', {
+              admin: group.createdBy,
+              adminsetting: true,
+              groupmembers: group.users,
+              heading: `${group.name} - Admin panel`,
+              groupid: group._id
+            })
+          }
+        })
+    }
+  }
+
+  else {
+    Group.find({}).populate('messages').exec()
+      .then(groups => {
+        let userGroups = []
+        if (groups.length) {
+          groups.forEach(group => {
+            group.users.forEach(user => {
+              if (user.toString() === req.user._id.toString()) {
+                userGroups.push(group);
+              }
+            })
+          })
+        }
+        res.render('groups', {
+          groups: userGroups,
+          heading: 'Groups you are in!'
+        })
+      })
+  }
+})
+
+
+router.post('/groups/addmember', ensureAuthenticated, (req, res) => {
+  function userExists(username, groupusers) {
+    for (let i = 0; i < groupusers.length; i++) {
+      if (username === groupusers[i].username) {
+        return true;
+      }
+    }
+    return false;
+  }
+  const groupid = req.body.groupid;
+  const newuser = req.body.uname.trim();
+  User.findOne({ username: newuser })
+    .then(user => {
+      if (user) {
+        Group.findById(groupid).populate('users').
+          then(group => {
+
+            if (userExists(user.username, group.users)) {
+              req.flash('error', 'user already a member!')
+              res.location(`/groups?action=manage&groupid=${groupid}`);
+              res.redirect(`/groups?action=manage&groupid=${groupid}`);
+            }
+            else {
+              group.users.push(user);
+              group.members += 1;
+              group.save();
+              user.groups.push(groupid);
+              user.save();
+              Notification.create({
+                userId: user._id,
+                message: `You've been added to the group: ${group.name}`,
+                link: `chatphase?type=group&user=${groupid}`,
+                date: new Date().toISOString(),
+                time: new Date().getTime()
+              }).then(resp => {
+                User.findOne({ username: newuser }).then(setuser => {
+                  setuser.notifications += 1;
+                  setuser.save();
+                })
+                Message.create({
+                  sillyId: `groupbot ${groupid}`,
+                  message: {
+                    msg: `${user.name} joined the group`,
+                    type: "text"
+                  },
+                  sender: 'groupbot',
+                  receiver: groupid,
+                  date: new Date().toLocaleString(),
+                  datesecs: Date.now(),
+                  msgtype: "group",
+                  groupname: group.name,
+                  groupid: groupid
+                }).then(message => {
+                  Group.findById(groupid)
+                    .then(group => {
+                      group.messages.push(message)
+                      group.save();
+                    })
+                  req.flash('success', `${user.name} (@${user.username}) successfully added to ${group.name}`)
+                  res.location(`/groups?action=manage&groupid=${groupid}`);
+                  res.redirect(`/groups?action=manage&groupid=${groupid}`);
+                })
+              })
+            }
+          })
+      }
+      else {
+        req.flash('error', 'user does not exist!')
+        res.location(`/groups?action=manage&groupid=${groupid}`);
+        res.redirect(`/groups?action=manage&groupid=${groupid}`);
+      }
+    })
+})
+
+router.post('/groups/new', ensureAuthenticated, (req, res) => {
+  const gname = req.body.gname;
+  const gdesc = req.body.gdesc;
+  Group.create({
+    name: gname,
+    description: gdesc,
+    createdBy: req.user.username,
+    date: new Date().toLocaleDateString(),
+    datesecs: new Date().getTime()
+  }).then(group => {
+    group.users.push(req.user);
+    group.members += 1;
+    group.save();
+    User.findOne({ username: req.user.username })
+      .then(user => {
+        user.groups.push(group._id)
+        user.save();
+      })
+    req.flash('success', 'Group successfully created!')
+    res.location('/groups')
+    res.redirect('/groups');
+  })
+})
+
+router.get('/deleteuser', ensureAuthenticated, (req, res) => {
+  if (!req.query.userid && !req.query.groupid) {
+    res.redirect('/');
+  }
+  else {
+    const userid = req.query.userid;
+    const groupid = req.query.groupid;
+    Group.findById(groupid).populate('users')
+      .then(group => {
+        const users = group.users.filter(user => {
+          return user._id.toString() !== userid.toString();
+        })
+        Group.updateOne({ _id: groupid }, { $set: { users: users, members: group.members - 1 } })
+          .then(resp => {
+            User.findById(userid)
+              .then(leftuser => {
+                leftuser.groups.splice(leftuser.groups.indexOf(groupid), 1);
+                leftuser.save();
+                Message.create({
+                  sillyId: `groupbot ${groupid}`,
+                  message: {
+                    msg: `${leftuser.username} left the group`,
+                    type: "text"
+                  },
+                  sender: 'groupbot',
+                  receiver: groupid,
+                  date: new Date().toLocaleString(),
+                  datesecs: Date.now(),
+                  msgtype: "group",
+                  groupname: group.name,
+                  groupid: group._id
+                }).then((message) => {
+                  group.messages.push(message);
+                  group.save()
+                  req.flash('success', 'user has been removed!');
+                  res.location('/groups?admin=2i994y89333ll78aouaw');
+                  res.redirect('/groups?admin=2i994y89333ll78aouaw');
+                })
+              })
+          })
+      })
+  }
+})
+
+router.get('/deletegroupcompletely', ensureAuthenticated, (req, res) => {
+  if (!req.query.groupid) {
+    res.redirect('/groups');
+  }
+  else {
+    const groupid = req.query.groupid;
+    Group.findById(groupid).populate('users').exec()
+      .then(group => {
+        Group.deleteOne({ _id: groupid })
+          .then(resp => {
+            Message.deleteMany({ receiver: groupid })
+              .then(() => {
+                req.flash('success', 'group deleted!')
+                res.location('/groups');
+                res.redirect('/groups')
+                group.users.forEach(user => {
+                  Notification.create({
+                    userId: user._id,
+                    message: `@${req.user.username} deleted the group '${group.name}'`,
+                    link: `groups`,
+                    date: new Date().toISOString(),
+                    time: new Date().getTime()
+                  }).then(() => {
+                    User.findById(user._id).then(setUser => {
+                      setUser.notifications += 1;
+                      setUser.save();
+                    })
+                  })
+                });
+              })
+          }).catch((error) => {
+            console.log(error);
+            res.redirect('/groups');
+          })
+      })
+
+  }
+})
+
+router.get('/all-students', ensureAuthenticated, (req, res) => {
+  User.find({})
+    .then(students => {
+      res.render('index', {
+        students: students
+      })
+    })
+})
+
+router.get('/notifications', ensureAuthenticated, (req, res) => {
+
+  User.findById(req.user._id)
+    .then(user => {
+      user.notifications = 0;
+      user.save();
+      Notification.find({ userId: req.user.id })
+        .sort({ date: -1 })
+        .then(notifications => {
+          res.render('notify', {
+            notifications: notifications,
+            timeSince: timeSince
+          })
+        })
+    })
+
+})
+
+router.post('/groups/changename/:groupid', ensureAuthenticated, (req, res) => {
+  const newgroupname = req.body.groupname;
+  const groupid = req.params.groupid;
+  Group.findById(groupid).populate('users').exec()
+    .then(group => {
+      const formerName = group.name;
+      Group.updateOne({ _id: groupid }, { $set: { name: newgroupname } })
+        .then(resp => {
+          Message.updateMany({ receiver: groupid }, { $set: { groupname: newgroupname } })
+            .then(() => {
+              group.users.forEach(user => {
+                Notification.create({
+                  userId: user._id,
+                  message: `@${req.user.username} changed the groupname '${formerName}' to '${newgroupname}'`,
+                  link: `chatphase?type=group&user=${groupid}`,
+                  date: new Date().toISOString(),
+                  time: new Date().getTime()
+                }).then(() => {
+                  User.findById(user._id).then(setUser => {
+                    setUser.notifications += 1;
+                    setUser.save();
+                  })
+                })
+              });
+              res.location(`/chatphase?type=group&user=${groupid}`);
+              res.redirect(`/chatphase?type=group&user=${groupid}`);
+            })
+        })
+    })
+
+})
+
+
+//chats with a particular user
+router.get('/chatphase', ensureAuthenticated, (req, res) => {
+  const type = req.query.type;
+  const chatid = req.query.user;
+  if (type.trim() === "private") {
+    User.findById(req.user.id)
+      .then(loggedInUser => {
+        const friendNames = [];
+        loggedInUser.friends.forEach(index => {
+          friendNames.push(index.username);
+        })
+        if (req.user.username != chatid) {
+          Message.find({})
+            .then(chats => {
+              const privateChats = [];
+              chats.forEach(chat => {
+                if (chat.sillyId.includes(req.user.username) && chat.sillyId.includes(chatid)) {
+                  privateChats.push(chat)
+                }
+              })
+              User.findOne({ username: chatid })
+                .then(founduser => {
+                  res.render('chats', {
+                    chats: privateChats,
+                    receiver: chatid,
+                    receiverimg: founduser.image
+                  });
+                })
+            })
+        }
+        else {
+          res.location('/');
+          res.redirect('/');
+        }
+      })
+  }
+  else if (type.trim() === 'group') {
+    Group.findOne({ _id: chatid })
+      .populate('users')
+      .populate('messages')
+      .then(group => {
+        if (group) {
+          let groupusers = []
+          group.users.forEach(user => {
+            groupusers.push(user.username);
+          });
+          if (groupusers.indexOf(req.user.username) === -1) {
+            res.location('/')
+            res.redirect('/');
+          }
+          else {
+            const chats = group.messages;
+            res.render('groupchats', {
+              chats: chats,
+              receiver: chatid,
+              name: group.name,
+              admin: group.createdBy,
+              members: group.members,
+              groupid: group._id,
+              groupusers: groupusers
+            })
+          }
+        }
+        else {
+          res.redirect('/groups')
+        }
+      }).catch((e) => {
+        console.log(e.message);
+        res.redirect('/groups');
+      })
+  }
+
+});
+
+
+
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.location('/users/login');
+  res.redirect('/users/login');
+}
+
+
+
+module.exports = router;
+
+
+
+/**
+User.deleteMany({})
+.then(() => {
+  Message.deleteMany({})
+.then(() => {
+  Notification.deleteMany({})
+  .then(() => {
+    Group.deleteMany({})
+    .then(() => {
+      Request.deleteMany({})
+      .then(() => {
+        console.log('done')
+      })
+    })
+  })
+})
+})*/

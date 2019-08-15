@@ -1,0 +1,210 @@
+#messages ul.error {
+  list-style: none;
+  color: #a94442;
+  background-color:#f2dede;
+  border-color:#ebccd1;
+  padding: 15px;
+  margin-bottom:20px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+#messages ul.success {
+  list-style: none;
+  color: #54c922;
+  background-color:#dfeed9;
+  border-color:#d3e5d1;
+  padding: 15px;
+  margin-bottom:20px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.post-item {
+  position: relative;
+  height: 150px;
+}
+.post-details {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+.bigheader{
+  font-size: 28px;
+}
+
+.navbar {
+  background-color:#36442b !important;
+  color: white !important;
+}
+.active {
+  color:white !important;
+}
+.navbar.navbar-light .navbar-nav .nav-item .nav-link   {
+  color: white !important;
+}
+.navbar-light .navbar-brand {
+  color: white !important;
+  font-size: 28px;
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+.msg_history{
+  background-image: url('/img/whatsapp.jpg');
+}
+
+.btn-outline-primary {
+  border: 2px soiid #36442b !important;
+}
+.btn-outline-primary
+
+#index{
+  margin-top: 70px; 
+}
+
+
+
+.small-device-a{
+  margin: 0 1px 0 1px;
+}
+
+#addmember{
+  display: none;
+}
+
+#link-form{
+  display: none;
+}
+#img-form{
+  display: none;
+}
+.hide{
+  display: none;
+}
+
+#nameform{
+  display: none;
+}
+#statusform {
+  display: none;
+
+}
+#emailform{
+  display: none;
+}
+#genderform{
+  display: none;
+}
+#addressform{
+  display: none;
+}
+#levelform{
+  display: none;
+}
+
+.list-group-item:hover {
+  background-color:#f8f9fa;
+}
+
+.viewprofile{
+  float: right;
+}
+
+#mp-form{
+  display: none;
+}
+
+.imgwhite{
+  padding: 5px;
+}
+.bg-white{
+  background: white;
+}
+img.bg-white{
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.outimgwhite {
+  float: right;
+  padding: 5px;
+}
+
+.userimg{
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+}
+
+.fa-navicon {
+  color: white !important;
+}
+
+#sidebar{
+  border-right: 1px solid grey;
+}
+
+main.posts-listing{
+ padding-top: 0px !important ;
+}
+
+main.posts-listing .post {
+ margin-bottom: 0px;
+
+}
+
+.btn-secondary {
+  background-color: black !important;
+}
+.header {
+  margin-bottom:90px; 
+}
+
+#scroll{
+  overflow-x: scroll;
+  border:1px solid black;
+  height: 150px;
+}
+
+#fullbody{
+  display: none;
+}
+.comm {
+  display: none;
+}
+
+.comment-error {
+  display: none;
+}
+.blog-post .post-comments .comment-body{
+  padding-top:0px;
+  padding-bottom: 2px;
+  margin-bottom: 1px;
+}
+
+#errorplace {
+  display: none;
+}
+#search-status{
+  display: none;
+}
+
+.small-device-nav{
+
+  display: none;
+}
+
+
+@media screen and (max-width: 770px) {
+  .btn-outline-white{
+    padding: 2px;
+  }
+  #desktop-nav {
+    display: none;
+  }
+  .small-device-nav{
+    display: block;
+    margin-bottom: 12px;
+    margin-top: 4px;
+  }
+}

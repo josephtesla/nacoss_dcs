@@ -1,0 +1,61 @@
+<%- include('templates/header') %>
+
+<div class="content-app" id="index">
+  <div class="row" id="messageArea">
+    <div class="col-md-4" id="sidebar">
+        <%- include('navigation') %>
+      <div class="app-content">
+        <div class="card">
+          <div class="card-header">
+              <h2 class="">Edit Post</h2>
+          </div>
+          
+          <div class="card-body">
+            <form action="/update-feed?post_id=<%= post.id %>" method="POST">
+              <div class="md-form">
+                <input required type="text" value="<%= post.post_title %>"  name="new_title" class="form-control" placeholder="Enter post title">
+              </div> <br>
+              <div class="form-group">
+                <textarea required name="new_body" placeholder="compose your post here..." class="form-control" cols="30" rows="10"><%= post.post_body %></textarea>
+              </div>
+              <div>
+                <button href="/post-new-feed" 
+                  class="btn btn-outline-primary pull-right waves-effect waves-light"
+                  style="padding: 10px; width: 100px;">post!</button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <footer>
+    &copy Nacoss DCS
+  </footer>
+</div>
+
+
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="js/socket.io.js"></script>
+<script src="vendor/popper.js/umd/popper.min.js"> </script>
+<script src="vendor/bootstrap/js/bootstrap.min.js"></script>
+<script src="vendor/jquery.cookie/jquery.cookie.js"> </script>
+<script src="vendor/@fancyapps/fancybox/jquery.fancybox.min.js"></script>
+<script src="js/front.js"></script>
+<script src="js/profile.js"></script>
+<!-- MDB core JavaScript -->
+<script type="text/javascript" src="md/js/mdb.min.js"></script>
+<!-- Initializations -->
+<script type="text/javascript">
+  // Animations initialization
+  new WOW().init();
+</script>
+
+</body>
+
+
+
+</html>

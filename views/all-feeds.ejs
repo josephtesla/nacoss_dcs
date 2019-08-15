@@ -1,0 +1,64 @@
+<%- include('templates/header') %>
+
+<div class="content-app" id="index">
+  <div class="row" id="messageArea">
+    <div class="col-md-4" id="sidebar">
+        <%- include('navigation') %>
+      <div class="app-content">
+        <div class="card">
+          <div class="card-header">
+              <h2 class="">Latest News</h2>
+          </div>
+          <%- messages(); %>
+          <a href="/post-new-feed" class="btn btn-outline-primary pull-right" style="padding: 10px; width: 100px;">post new</a>
+         <div class="card-body">
+
+            <% allPosts.forEach(function(post){ %>
+              <li class="post-item list-group-item">
+                  <a href="/single-post?post_id=<%= post._id %>"><h5><%= post.post_title %></h5>
+                  <small>
+                    <%= post.post_body %>
+                  </small>
+                  <div class="post-details">
+                    <small>Posted by: <%= post.posted_by.name %>  (<span>
+                        <%= timeSince(new Date().getTime() - post.time)  %></span>)&nbsp;&nbsp;</small>
+                  </div></a>
+                </li>
+
+            <% }) %>
+          
+         </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <footer>
+    &copy Nacoss DCS
+  </footer>
+</div>
+
+
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="js/socket.io.js"></script>
+<script src="vendor/popper.js/umd/popper.min.js"> </script>
+<script src="vendor/bootstrap/js/bootstrap.min.js"></script>
+<script src="vendor/jquery.cookie/jquery.cookie.js"> </script>
+<script src="vendor/@fancyapps/fancybox/jquery.fancybox.min.js"></script>
+<script src="js/front.js"></script>
+<script src="js/profile.js"></script>
+<!-- MDB core JavaScript -->
+<script type="text/javascript" src="md/js/mdb.min.js"></script>
+<!-- Initializations -->
+<script type="text/javascript">
+  // Animations initialization
+  new WOW().init();
+
+</script>
+
+</body>
+
+
+
+</html>

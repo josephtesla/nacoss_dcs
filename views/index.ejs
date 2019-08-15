@@ -1,0 +1,103 @@
+<%- include('templates/header') %>
+<div class="content-app" id="index">
+  <div class="row" id="messageArea">
+    <div class="col-md-4" id="sidebar">
+        <%- include('navigation') %>
+      <div class="app-content">
+        <div id="onlinechats">
+          <div class="card">
+            <h3 class="card-header">Online Students</h3>
+            <% if (!!locals.onlineFriends){ %>
+            
+                <% if (onlineFriends.length){ %>
+                  <ul class="list-group">
+              <%	onlineFriends.forEach(function(friend){	%>
+              <l1 class="list-group-item"><a href="/chatphase?type=private&user=<%= friend %>">@<%= friend %></a></l1>
+              <% })	%>
+            </ul>
+              <%	}	%>
+              <% if (!onlineFriends.length){ %>
+                <div  class="card-body">
+                  <p>Looks like no student is Online</p>
+                  you can <a  href="/all-students">send a message to a student</a>. they will see it when they come online
+                </div>
+                <%	}	%>
+            <%	}	%>
+          </div>
+        </div>
+        <div id="findpage">
+          <%- messages();  %>
+         
+          <% if (!!locals.searchResults){ %>
+          <div class="friends">
+            <ul class="list-group">
+              <%	searchResults.forEach(function(user){	%>
+              <l1 class="list-group-item"><a href="/addfriend/<%= user.username %>">
+                  <%= user.name %> (@
+                  <%= user.username %>)</a></l1>
+              <% })	%>
+              <li></li>
+            </ul>
+
+            <%	}	%>
+
+          </div>
+          <div id="friendlist" class="card">
+              
+            <% if (!!locals.students) { %>
+            <% if (students.length){  %>
+                <h3 class="card-header">ALL STUDENTS</h3>
+
+                <form action="/search" class="card-body mb-0 md-form mt-0" method="POST">
+                      <input required type="search" name="friendname" class="form-control" placeholder="Enter student name to search">
+                </form>
+            <div class="scroll">
+              <ul class="list-group">
+                <%	students.forEach(function(student){	%>
+                <l1 class="list-group-item"><a href="/chatphase?type=private&user=<%= student.username %>">
+                    <%= student.name %> (<%= student.level %>)</a>
+                  <a class="viewprofile" href="/users/<%= student.username %>">view profile</a></l1>
+                <% })	%>
+                <li></li>
+              </ul>
+            </div>
+            <%  }  %>
+            <% if (!students.length){  %>
+            <h3>No registered students currently</h3><br>
+            <%  }  %>
+            <%  }  %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <footer>
+    &copy Nacoss DCS
+  </footer>
+</div>
+
+
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="js/socket.io.js"></script>
+<script src="vendor/popper.js/umd/popper.min.js"> </script>
+<script src="vendor/bootstrap/js/bootstrap.min.js"></script>
+<script src="vendor/jquery.cookie/jquery.cookie.js"> </script>
+<script src="vendor/@fancyapps/fancybox/jquery.fancybox.min.js"></script>
+<script src="js/front.js"></script>
+<script src="js/socket.js"></script>
+<script src="js/notify.js"></script>
+
+<!-- MDB core JavaScript -->
+<script type="text/javascript" src="md/js/mdb.min.js"></script>
+<!-- Initializations -->
+<script type="text/javascript">
+  // Animations initialization
+  new WOW().init();
+</script>
+
+</body>
+
+
+</html>

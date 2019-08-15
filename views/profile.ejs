@@ -1,0 +1,169 @@
+<%- include('templates/header') %>
+
+    <div class="content-app" id="index">
+      <div class="row" id="messageArea">
+        <div class="col-md-4" id="sidebar">
+            <%- include('navigation') %>
+          <div class="app-content">
+            <%- messages();  %>
+            <%  if (username !== user.username){    %>
+            <div class="card">
+              <div class="card-body">
+                <h3 class="text-uppercase">Student Profile </h3>
+              </div>
+            </div><br />
+            <center>
+              <img id="imgavatarr" style="border:1px solid grey" width="200px" height="200px" src="
+                  <% if (typeof image === 'undefined' || image == '')   {  %>
+                     img/user.svg
+                   <%   } %>
+                   <% if (image.length)   {  %>
+                     <%= image %>
+                   <%   } %> 
+                  
+                  "
+                alt="<%= name %>"><br>
+              <a class="btn btn-outline-primary btn-sm" href="/chatphase?type=private&user=<%= username  %>">Open chats</a>
+              <input type="file" class="hide" id="profilepics" name="profilepics" />
+              <a class="btn btn-outline-primary waves-effect waves-light btn-sm" href="/friendlist?user=<%= username  %>" role="button">View
+                Friend List<i class="fa fa-th-list ml-2"></i></a>
+              <br><br>
+            </center>
+            <b>Status:
+              <%= status %></b>
+            <div class="card">
+              <ul class="list group">
+
+                <li class="list-group-item">Name:
+                  <%= name %>
+                </li>
+                <li class="list-group-item">Username:
+                  <%= username %>
+                </li>
+                <li class="list-group-item">Matric number:
+                    <%= matric_no %>
+                  </li>
+                  <li class="list-group-item">current level:
+                    <%= level %>
+                  </li>
+                <li class="list-group-item">Email:
+                  <%= email %>
+                </li>
+                <li class="list-group-item">Gender:
+                  <%= gender %>
+                </li>
+                <li class="list-group-item">Address: <Address>
+                    <%= address %></Address></li>
+              </ul>
+            </div>
+            <%   } %>
+            <%  if (username === user.username){    %>
+            <form action="/users/<%= username %>/edit" method="POST" enctype="multipart/form-data">
+              <div class="card">
+                <div class="card-body">
+                  <h3 class="text-uppercase">Student Profile</h3>
+                </div>
+              </div>
+              <br />
+              <center>
+
+                <img id="imgavatarr" style="border:1px solid grey" width="250px" height="250px" src="
+                        <% if (typeof image === 'undefined' || image == '')   {  %>
+                           img/user.svg
+                         <%   } %>
+                         <% if (image.length)   {  %>
+                           <%= image %>
+                         <%   } %> 
+                     "
+                  alt="<%= name %>"><br>
+                <a class="btn btn-outline-primary btn-sm" href="" id="picsbtn">Change profile pics</a>
+                <input type="file" class="hide" id="profilepics" name="profilepics" />
+                <a class="btn btn-outline-primary waves-effect waves-light btn-sm" href="/friendlist?user=<%= username %>" role="button">View
+                  Friend List<i class="fa fa-th-list ml-2"></i></a>
+                <br><br>
+              </center>
+              <b>Status:
+                <%= status %> <a href="" id="editstatus">edit</a>
+                <input type="text" class="hide form-control" value="<%= status %>" placeholder="update status" name="editstatus"
+                  id="statusform" />
+                <div class="card">
+              </b>
+              <ul class="list group">
+
+                <li class="list-group-item">Name:
+                  <%= name %> <a href="" id="editname">edit</a>
+                  <input type="text" class="hide form-control" value="<%= name %>" placeholder="update name" name="editname"
+                    id="nameform" /></li>
+                    <li class="list-group-item">Matric number:
+                      <%= matric_no %>
+                      </li>
+                      <li class="list-group-item">Level:
+                        <%= level %> <a href="" id="editlevel">edit</a>
+                        <select class="form-control  hide" id="levelform" name="editlevel">
+                          <option selected="selected" value="<%= level %>">
+                            <%=  level  %>
+                          </option>
+                          <option value="HND 1">HND 1</option>
+                          <option value="HND 2">HND 2</option>
+                          <option value="ND 1">ND 1</option>
+                          <option value="ND 2">ND 2</option>
+
+                        </select></li>
+                <li class="list-group-item">Username:
+                  <%= username %>
+                </li>
+                <li class="list-group-item">Email:
+                  <%= email %> <a href="" id="editemail">edit</a>
+                  <input type="text" class="form-control hide" value="<%= email %>" name="editemail" placeholder="update Email"
+                    id="emailform" /></li>
+                <li class="list-group-item">Gender:
+                  <%= gender %> <a href="" id="editgender">edit</a>
+                  <select class="form-control  hide" id="genderform" name="editgender">
+                    <option selected="selected" value="<%= gender %>">
+                      <%=  gender  %>
+                    </option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select></li>
+                <li class="list-group-item">Address: <Address>
+                    <%= address %></Address> <a href="" id="editaddress">edit</a>
+                  <input type="text" class="form-control hide" value="<%= address %>" name="editaddress" id="addressform"
+                    placeholder="update address" /></li>
+              </ul>
+          </div>
+          <input type="submit" class="btn btn-outline-primary btn-sm" value="Save changes" />
+          </form>
+          <%   } %>
+        </div>
+
+      </div>
+    </div>
+
+
+    <footer>
+      &copy Stroute
+    </footer>
+  </div>
+
+
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="js/socket.io.js"></script>
+  <script src="vendor/popper.js/umd/popper.min.js"> </script>
+  <script src="vendor/bootstrap/js/bootstrap.min.js"></script>
+  <script src="vendor/jquery.cookie/jquery.cookie.js"> </script>
+  <script src="vendor/@fancyapps/fancybox/jquery.fancybox.min.js"></script>
+  <script src="js/front.js"></script>
+  <script src="js/profile.js"></script>
+  <!-- MDB core JavaScript -->
+  <script type="text/javascript" src="md/js/mdb.min.js"></script>
+  <!-- Initializations -->
+  <script type="text/javascript">
+    // Animations initialization
+    new WOW().init();
+  </script>
+
+</body>
+
+
+
+</html>

@@ -1,0 +1,72 @@
+<%- include('templates/header') %>
+<div class="content-app" id="index">
+  <div class="row" id="messageArea">
+    <div class="col-md-4" id="sidebar">
+        <%- include('navigation') %>
+      <div class="app-content">
+       
+          <div id="friendlist" class="card">
+              
+            <% if (!!locals.searchResults) { %>
+            <% if (searchResults.length){  %>
+                <h3 class="card-header">search results</h3>
+
+                <form action="/search" class="card-body mb-0 md-form mt-0" method="POST">
+                      <input required type="search" name="friendname" class="form-control" placeholder="Enter student name to search">
+                </form>
+            <div class="scroll">
+              <ul class="list-group">
+                <%	searchResults.forEach(function(student){	%>
+                <l1 class="list-group-item"><a href="/chatphase?type=private&user=<%= student.username %>">
+                    <%= student.name %> (<%= student.level %>)</a>
+                  <a class="viewprofile" href="/users/<%= student.username %>">view profile</a></l1>
+                <% })	%>
+                <li></li>
+              </ul>
+            </div>
+            <%  }  %>
+            <% if (!searchResults.length){  %>
+            <h3 class="card-header">No match found!</h3><br>
+            <div class="card-body">
+                  <form action="/search" class="card-body mb-0 md-form mt-0" method="POST">
+                     <input required type="search" name="friendname" class="form-control" placeholder="Enter student name to search">
+               </form>
+                  No matched found for search query
+            </div>
+            <%  }  %>
+            <%  }  %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <footer>
+    &copy Nacoss DCS
+  </footer>
+</div>
+
+
+<script src="vendor/jquery/jquery.min.js"></script>
+<script src="js/socket.io.js"></script>
+<script src="vendor/popper.js/umd/popper.min.js"> </script>
+<script src="vendor/bootstrap/js/bootstrap.min.js"></script>
+<script src="vendor/jquery.cookie/jquery.cookie.js"> </script>
+<script src="vendor/@fancyapps/fancybox/jquery.fancybox.min.js"></script>
+<script src="js/front.js"></script>
+<script src="js/socket.js"></script>
+<script src="js/notify.js"></script>
+
+<!-- MDB core JavaScript -->
+<script type="text/javascript" src="md/js/mdb.min.js"></script>
+<!-- Initializations -->
+<script type="text/javascript">
+  // Animations initialization
+  new WOW().init();
+</script>
+
+</body>
+
+
+</html>
